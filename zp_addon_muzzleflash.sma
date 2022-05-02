@@ -28,8 +28,6 @@ enum _: eMuzzleFlashData {
 new Array: gl_arMuzzleFlashData;
 
 /* ~ [ Macroses ] ~ */
-#define LOWER_LIMIT_OF_ENTITIES				100
-
 #define IsNullString(%0)					bool: ( %0[ 0 ] == EOS )
 #define IsArrayInvalid(%0)					( %0 == Invalid_Array || !ArraySize( %0 ) )
 
@@ -60,6 +58,8 @@ public plugin_precache( )
 /* ~ [ Other ] ~ */
 public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ] )
 {
+	static const LOWER_LIMIT_OF_ENTITIES = 100;
+	
 	static iMaxEntities; if ( !iMaxEntities ) iMaxEntities = global_get( glb_maxEntities );
 	if ( iMaxEntities - engfunc( EngFunc_NumberOfEntities ) <= LOWER_LIMIT_OF_ENTITIES )
 		return NULLENT;
@@ -69,10 +69,7 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	// If finded invalid entity or valid, but another iMuzzleId, try create new
 	if ( is_nullent( pSprite ) || !is_nullent( pSprite ) && get_entvar( pSprite, var_impulse ) != iMuzzleId )
 	{
-		static szEntityReference[ 16 ];
-		if ( !IsNullString( szEntityReference ) )
-			szEntityReference = "env_sprite";
-
+		static const szEntityReference[ ] = "env_sprite";
 		if ( ( pSprite = rg_create_entity( szEntityReference ) ) && is_nullent( pSprite ) )
 			return NULLENT;
 	}
