@@ -64,12 +64,16 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	if ( iMaxEntities - engfunc( EngFunc_NumberOfEntities ) <= LOWER_LIMIT_OF_ENTITIES )
 		return NULLENT;
 
-	new pSprite = NULLENT; rg_find_ent_by_owner( pSprite, aData[ eMuzzle_ClassName ], pPlayer );
+	new pSprite = fm_find_ent_by_owner( NULLENT, aData[ eMuzzle_ClassName ], pPlayer );
 
 	// If finded invalid entity or valid, but another iMuzzleId, try create new
 	if ( is_nullent( pSprite ) || !is_nullent( pSprite ) && get_entvar( pSprite, var_impulse ) != iMuzzleId )
 	{
-		if ( ( pSprite = rg_create_entity( "env_sprite" ) ) && is_nullent( pSprite ) )
+		static szEntityReference[ 16 ];
+		if ( !IsNullString( szEntityReference ) )
+			szEntityReference = "env_sprite";
+
+		if ( ( pSprite = rg_create_entity( szEntityReference ) ) && is_nullent( pSprite ) )
 			return NULLENT;
 	}
 
@@ -150,7 +154,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 	new pEntity = NULLENT;
 	if ( pPlayer == 0 )
 	{
-		while ( ( pEntity = rg_find_ent_by_class( pEntity, EntityMuzzleFlashClassname ) ) > 0 )
+		while ( ( pEntity = fm_find_ent_by_class( pEntity, EntityMuzzleFlashClassname ) ) > 0 )
 		{
 			if ( iMuzzleId > Invalid_MuzzleFlash && get_entvar( pEntity, var_impulse ) != iMuzzleId )
 				continue;
