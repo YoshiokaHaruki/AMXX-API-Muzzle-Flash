@@ -1,5 +1,5 @@
 # AMXX API MuzzleFlash
-API Plugin for add custom Muzzle Flash for Weapons in Counter Strike 1.6 (based on ReAPI)
+API Plugin for add custom Muzzle Flash for Weapons in Counter Strike 1.6
 
 ---
 ### Requirements
