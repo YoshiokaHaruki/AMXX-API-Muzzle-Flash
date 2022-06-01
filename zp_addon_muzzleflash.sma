@@ -1,7 +1,7 @@
 public stock const PluginName[ ] =			"[API] Addon: MuzzleFlash";
-public stock const PluginVersion[ ] =		"1.0";
+public stock const PluginVersion[ ] =		"1.1";
 public stock const PluginAuthor[ ] =		"Yoshioka Haruki";
-public stock const PluginPrefix[ ] =		"API:MuzzleFlash";
+public stock const PluginPrefix[ ] =		"[API:MuzzleFlash]";
 
 /* ~ [ Includes ]~ */
 #include <amxmodx>
@@ -9,7 +9,39 @@ public stock const PluginPrefix[ ] =		"API:MuzzleFlash";
 #include <reapi>
 #include <api_muzzleflash>
 
+#if !defined _reapi_included
+	#include <hamsandwich>
+
+	#define NULLENT							FM_NULLENT
+	#define PDATA_SAFE						2
+
+	#define get_entvar						pev
+	#define set_entvar						set_pev
+
+	#define var_impulse						pev_impulse
+	#define var_frame						pev_frame
+	#define var_classname					pev_classname
+	#define var_spawnflags					pev_spawnflags
+	#define var_rendermode					pev_rendermode
+	#define var_rendercolor					pev_rendercolor
+	#define var_renderamt					pev_renderamt
+	#define var_scale						pev_scale
+	#define var_owner						pev_owner
+	#define var_aiment						pev_aiment
+	#define var_body						pev_body
+	#define var_framerate					pev_framerate
+	#define var_nextthink					pev_nextthink
+	#define var_flags						pev_flags
+	#define var_yaw_speed					pev_yaw_speed
+	#define var_pitch_speed					pev_pitch_speed
+	#define var_ideal_yaw					pev_ideal_yaw
+
+	#define rg_create_entity				fm_create_entity
+	#define is_nullent(%0)					( %0 == NULLENT || pev_valid( %0 ) != PDATA_SAFE )
+#endif
+
 /* ~ [ Plugin Settings ] ~ */
+new const EntityMuzzleFlashReference[ ] =	"env_sprite";
 new const EntityMuzzleFlashClassname[ ] =	"ent_muzzleflash_x";
 
 /* ~ [ Params ] ~ */
@@ -23,9 +55,10 @@ enum _: eMuzzleFlashData {
 	Float: eMuzzle_Color[ 3 ],
 	Float: eMuzzle_Alpha,
 	Float: eMuzzle_MaxFrames,
-	MuzzleFlashFlags: eMuzzle_Flags
+	eMuzzle_Flags
 };
 new Array: gl_arMuzzleFlashData;
+new gl_iMuzzlesCount;
 
 /* ~ [ Macroses ] ~ */
 #define IsNullString(%0)					bool: ( %0[ 0 ] == EOS )
@@ -49,10 +82,18 @@ public plugin_natives( )
 
 public plugin_precache( )
 {
-	register_plugin( PluginName, PluginVersion, PluginAuthor );
-
 	/* -> Array's -> */
 	gl_arMuzzleFlashData = ArrayCreate( eMuzzleFlashData );
+}
+
+public plugin_init( )
+{
+	register_plugin( PluginName, PluginVersion, PluginAuthor );
+
+	#if !defined _reapi_included
+		/* -> HamSandwich -> */
+		RegisterHam( Ham_Think, EntityMuzzleFlashReference, "CMuzzleFlash__Think", false );
+	#endif
 }
 
 /* ~ [ Other ] ~ */
@@ -64,13 +105,12 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	if ( iMaxEntities - engfunc( EngFunc_NumberOfEntities ) <= LOWER_LIMIT_OF_ENTITIES )
 		return NULLENT;
 
-	new pSprite = fm_find_ent_by_owner( NULLENT, aData[ eMuzzle_ClassName ], pPlayer );
+	static pSprite; pSprite = fm_find_ent_by_owner( NULLENT, aData[ eMuzzle_ClassName ], pPlayer );
 
 	// If finded invalid entity or valid, but another iMuzzleId, try create new
 	if ( is_nullent( pSprite ) || !is_nullent( pSprite ) && get_entvar( pSprite, var_impulse ) != iMuzzleId )
 	{
-		static const szEntityReference[ ] = "env_sprite";
-		if ( ( pSprite = rg_create_entity( szEntityReference ) ) && is_nullent( pSprite ) )
+		if ( ( pSprite = rg_create_entity( EntityMuzzleFlashReference ) ) && is_nullent( pSprite ) )
 			return NULLENT;
 	}
 
@@ -110,7 +150,9 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 		set_entvar( pSprite, var_last_time, flGameTime );
 		set_entvar( pSprite, var_nextthink, flGameTime );
 
-		SetThink( pSprite, "CMuzzleFlash__Think" );
+		#if defined _reapi_included
+			SetThink( pSprite, "CMuzzleFlash__Think" );
+		#endif
 	}
 
 	return pSprite;
@@ -118,14 +160,31 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 
 public CMuzzleFlash__Think( const pSprite )
 {
-	if ( is_nullent( pSprite ) )
-		return;
+	#if !defined _reapi_included
+		if ( is_nullent( pSprite ) || !IsMuzzleValid( get_entvar( pSprite, var_impulse ) ) )
+			return;
+	#endif
 
-	static Float: flFrame; flFrame = get_entvar( pSprite, var_frame );
 	static Float: flGameTime; flGameTime = get_gametime( );
+	static Float: flFrame, Float: flMaxFrame, Float: flFrameRate, Float: flLastTime, Float: flUpdateFrame; 
 
-	flFrame += ( Float: get_entvar( pSprite, var_framerate ) * ( flGameTime - Float: get_entvar( pSprite, var_last_time ) ) );
-	if ( flFrame > Float: get_entvar( pSprite, var_max_frame ) )
+	#if defined _reapi_included
+		flFrame = get_entvar( pSprite, var_frame );
+		flMaxFrame = get_entvar( pSprite, var_max_frame );
+		flFrameRate = get_entvar( pSprite, var_framerate );
+		flLastTime = get_entvar( pSprite, var_last_time );
+		flUpdateFrame = get_entvar( pSprite, var_update_frame );
+	#else
+		get_entvar( pSprite, var_frame, flFrame );
+		get_entvar( pSprite, var_max_frame, flMaxFrame );
+		get_entvar( pSprite, var_framerate, flFrameRate );
+		get_entvar( pSprite, var_last_time, flLastTime );
+		get_entvar( pSprite, var_update_frame, flUpdateFrame );
+	#endif
+
+
+	flFrame += ( flFrameRate * ( flGameTime - flLastTime ) );
+	if ( flFrame > flMaxFrame )
 	{
 		if ( get_entvar( pSprite, var_spawnflags ) == MuzzleFlashFlag_Once )
 		{
@@ -137,23 +196,23 @@ public CMuzzleFlash__Think( const pSprite )
 
 	set_entvar( pSprite, var_frame, flFrame );
 	set_entvar( pSprite, var_last_time, flGameTime );
-	set_entvar( pSprite, var_nextthink, flGameTime + Float: get_entvar( pSprite, var_update_frame ) );
+	set_entvar( pSprite, var_nextthink, flGameTime + flUpdateFrame );
 }
 
 public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId )
 {
-	if ( iMuzzleId < Invalid_MuzzleFlash || iMuzzleId >= MuzzleFlash: ArraySize( gl_arMuzzleFlashData ) )
+	if ( !IsMuzzleValid( iMuzzleId, true ) )
 	{
 		log_amx( "%s MuzzleFlash with index (%i) not found.", PluginPrefix, iMuzzleId );
 		return false;
 	}
 
-	new pEntity = NULLENT;
+	static pEntity; pEntity = NULLENT;
 	if ( pPlayer == 0 )
 	{
 		while ( ( pEntity = fm_find_ent_by_class( pEntity, EntityMuzzleFlashClassname ) ) > 0 )
 		{
-			if ( iMuzzleId > Invalid_MuzzleFlash && get_entvar( pEntity, var_impulse ) != iMuzzleId )
+			if ( iMuzzleId > Invalid_MuzzleFlash && MuzzleFlash: get_entvar( pEntity, var_impulse ) != iMuzzleId )
 				continue;
 
 			UTIL_KillEntity( pEntity );
@@ -167,7 +226,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 		// With 'rg_find_ent_by_owner' server can went into an endless loop
 		while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassname, pPlayer ) ) > 0 )
 		{
-			if ( iMuzzleId > Invalid_MuzzleFlash && get_entvar( pEntity, var_impulse ) != iMuzzleId )
+			if ( iMuzzleId > Invalid_MuzzleFlash && MuzzleFlash: get_entvar( pEntity, var_impulse ) != iMuzzleId )
 				continue;
 
 			UTIL_KillEntity( pEntity );
@@ -200,21 +259,30 @@ public native_muzzle_init( const iPlugin, const iParams )
 
 	ArrayPushArray( gl_arMuzzleFlashData, aData );
 
-	return ArraySize( gl_arMuzzleFlashData ) - 1;
+	return ++gl_iMuzzlesCount - 1;
 }
 
 public bool: native_muzzle_clear( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return false;
 	}
 
 	enum { arg_muzzle_id = 1 };
 
 	new iMuzzleId = get_param( arg_muzzle_id );
-	( MuzzleFlash: iMuzzleId == Invalid_MuzzleFlash ) ? ArrayClear( gl_arMuzzleFlashData ) : ArrayDeleteItem( gl_arMuzzleFlashData, iMuzzleId ); 
+	if ( MuzzleFlash: iMuzzleId == Invalid_MuzzleFlash )
+	{
+		ArrayClear( gl_arMuzzleFlashData );
+		gl_iMuzzlesCount = 0;
+	}
+	else
+	{
+		ArrayDeleteItem( gl_arMuzzleFlashData, iMuzzleId ); 
+		gl_iMuzzlesCount--;
+	}
 
 	return true;
 }
@@ -223,13 +291,19 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return false;
 	}
 
 	enum { arg_muzzle_id = 1, arg_property, arg_value, arg_len };
 
 	new iMuzzleId = get_param( arg_muzzle_id );
+	if ( !IsMuzzleValid( iMuzzleId ) )
+	{
+		log_amx( "%s MuzzleFlash with index (%i) not found.", PluginPrefix, iMuzzleId );
+		return false;
+	}
+
 	new iProperty = get_param( arg_property );
 	new aData[ eMuzzleFlashData ]; ArrayGetArray( gl_arMuzzleFlashData, iMuzzleId, aData );
 
@@ -259,19 +333,25 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return false;
 	}
 
 	enum { arg_muzzle_id = 1, arg_property, arg_value };
 
 	new iMuzzleId = get_param( arg_muzzle_id );
+	if ( !IsMuzzleValid( iMuzzleId ) )
+	{
+		log_amx( "%s MuzzleFlash with index (%i) not found.", PluginPrefix, iMuzzleId );
+		return false;
+	}
+
 	new iProperty = get_param( arg_property );
 	new aData[ eMuzzleFlashData ]; ArrayGetArray( gl_arMuzzleFlashData, iMuzzleId, aData );
 
 	switch ( eMuzzleProperties: iProperty )
 	{
-		case ZC_MUZZLE_SPRITE: 
+		case ZC_MUZZLE_SPRITE:
 		{
 			get_string( arg_value, aData[ eMuzzle_Sprite ], charsmax( aData[ eMuzzle_Sprite ] ) );
 		
@@ -288,7 +368,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_COLOR: get_array_f( arg_value, aData[ eMuzzle_Color ], 3 );
 		case ZC_MUZZLE_ALPHA: aData[ eMuzzle_Alpha ] = get_float_byref( arg_value );
 		case ZC_MUZZLE_MAX_FRAMES: aData[ eMuzzle_MaxFrames ] = get_float_byref( arg_value );
-		case ZC_MUZZLE_FLAGS: aData[ eMuzzle_Flags ] = MuzzleFlashFlags: get_float_byref( arg_value );
+		case ZC_MUZZLE_FLAGS: aData[ eMuzzle_Flags ] = get_param_byref( arg_value );
 		default:
 		{
 			log_amx( "%s Property (%i) not found for MuzzleFlash (Id: %i)", PluginPrefix, iProperty, iMuzzleId );
@@ -305,7 +385,7 @@ public native_muzzle_find( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return -1;
 	}
 
@@ -319,7 +399,7 @@ public native_muzzle_find( const iPlugin, const iParams )
 	}
 
 	new iMuzzleId = get_param( arg_muzzle_id );
-	if ( MuzzleFlash: iMuzzleId < Invalid_MuzzleFlash || iMuzzleId >= ArraySize( gl_arMuzzleFlashData ) )
+	if ( !IsMuzzleValid( iMuzzleId, true ) )
 	{
 		log_amx( "%s MuzzleFlash with index (%i) not found.", PluginPrefix, iMuzzleId );
 		return -1;
@@ -341,7 +421,7 @@ public native_muzzle_draw( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return -1;
 	}
 
@@ -355,7 +435,7 @@ public native_muzzle_draw( const iPlugin, const iParams )
 	}
 
 	new iMuzzleId = get_param( arg_muzzle_id );
-	if ( MuzzleFlash: iMuzzleId <= Invalid_MuzzleFlash || iMuzzleId >= ArraySize( gl_arMuzzleFlashData ) )
+	if ( !IsMuzzleValid( iMuzzleId ) )
 	{
 		log_amx( "%s MuzzleFlash with index (%i) not found.", PluginPrefix, iMuzzleId );
 		return -1;
@@ -381,7 +461,7 @@ public bool: native_muzzle_destroy( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		log_amx( "%s MuzzleFlash is Invalid.", PluginPrefix );
+		log_amx( "%s MuzzleFlash Array is Invalid.", PluginPrefix );
 		return false;
 	}
 
@@ -391,6 +471,15 @@ public bool: native_muzzle_destroy( const iPlugin, const iParams )
 }
 
 /* ~ [ Stocks ] ~ */
+
+/* -> Check MuzzleFlash is Valid <- */
+stock bool: IsMuzzleValid( const any: iMuzzleId, const bool: bAllowInvalid = false )
+{
+	if ( bAllowInvalid )
+		return ( Invalid_MuzzleFlash <= iMuzzleId < gl_iMuzzlesCount );
+	else
+		return ( Invalid_MuzzleFlash < iMuzzleId < gl_iMuzzlesCount );
+}
 
 /* -> Destroy Entity <- */
 stock UTIL_KillEntity( const pEntity ) 

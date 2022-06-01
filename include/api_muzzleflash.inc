@@ -7,7 +7,7 @@ enum MuzzleFlash {
 	Invalid_MuzzleFlash = -1
 };
 
-enum MuzzleFlashFlags {
+enum {
 	MuzzleFlashFlag_Once = 0,	// Destroy after all frames are played back
 	MuzzleFlashFlag_Static,		// Static MuzzleFlash (Can destroy by 'zc_muzzle_destroy')
 	MuzzleFlashFlag_Cyclical	// The sprite is played in a circle until it is removed using 'zc_muzzle_destroy'
@@ -42,7 +42,7 @@ native MuzzleFlash: zc_muzzle_init( );
  * 
  * @return						Returns true if you deleted Muzzle Flash Array or Muzzle Flash index in Array
  */
-native bool: zc_muzzle_clear( MuzzleFlash: iMuzzleId );
+native bool: zc_muzzle_clear( const MuzzleFlash: iMuzzleId );
 
 /**
  * Get a Muzzle Flash property
