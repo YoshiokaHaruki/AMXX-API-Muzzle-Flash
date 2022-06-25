@@ -42,7 +42,7 @@ native MuzzleFlash: zc_muzzle_init( );
  * 
  * @return						Returns true if you deleted Muzzle Flash Array or Muzzle Flash index in Array
  */
-native bool: zc_muzzle_clear( const MuzzleFlash: iMuzzleId );
+native bool: zc_muzzle_clear( const MuzzleFlash: iMuzzleId = Invalid_MuzzleFlash );
 
 /**
  * Get a Muzzle Flash property
@@ -80,7 +80,7 @@ native zc_muzzle_find( const pPlayer, const MuzzleFlash: iMuzzleId = Invalid_Muz
  * 
  * @return						Returns a index of Muzzle Flash entity
  */
-native zc_muzzle_draw( const pPlayer, const MuzzleFlash: iMuzzleId );
+native zc_muzzle_draw( const pPlayer, const MuzzleFlash: iMuzzleId = Invalid_MuzzleFlash );
 
 /**
  * Destroy Muzzle Flash
@@ -90,4 +90,4 @@ native zc_muzzle_draw( const pPlayer, const MuzzleFlash: iMuzzleId );
  * 
  * @return						Returns true if you deleted Muzzle Flash, false if an error occurred somewhere
  */
-native bool: zc_muzzle_destroy( const pPlayer, const MuzzleFlash: iMuzzleId );
+native bool: zc_muzzle_destroy( const pPlayer, const MuzzleFlash: iMuzzleId = Invalid_MuzzleFlash );
