@@ -48,18 +48,16 @@ public stock const PluginAuthor[ ] =		"Yoshioka Haruki";
 
 /* ~ [ Plugin Settings ] ~ */
 /**
- * Comment out or delete this line, if u don't needed Error Logs
+ * Set 'false' if u don't needed Error Logs
  */
-#define WriteErrorLogs
-#if defined WriteErrorLogs
-	/**
-	 * Logs that will not affect the further operation of the plugin, where natives are used
-	 * NB! With this setting, you will not know in which plugin and on which line the error occurred
-	 * 
-	 * Comment out or delete this line, if u don't needed Safe Error Logs
-	 */
-	// #define UseSafeErrorLogs
-#endif
+#define WriteErrorLogs						true
+/**
+ * Logs that will not affect the further operation of the plugin, where natives are used
+ * NB! With this setting, you will not know in which plugin and on which line the error occurred
+ * 
+ * Comment out or delete this line, if u don't needed Safe Error Logs
+ */
+// #define UseSafeErrorLogs
 
 new const PluginPrefix[ ] =					"[API:MuzzleFlash]";
 new const EntityMuzzleFlashReference[ ] =	"env_sprite";
@@ -229,7 +227,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 {
 	if ( !IsMuzzleValid( iMuzzleId, true ) )
 	{
-		PrepareErrorLog( "Muzzle Destroy", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Destroy", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return false;
 	}
 
@@ -263,25 +261,21 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 	}
 	else
 	{
-		PrepareErrorLog( "Muzzle Destroy", "Invalid Player (%i)", pPlayer );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Destroy", "Invalid Player (%i)", pPlayer );
 		return false;
 	}
 }
 
 PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
 {
-#if defined WriteErrorLogs
 	static szBuffer[ 256 ];
 	vformat( szBuffer, charsmax( szBuffer ), szError, 3 );
 	format( szBuffer, charsmax( szBuffer ), "%s %s (%s)", PluginPrefix, szBuffer, szAction );
 
-	#if defined UseSafeErrorLogs
-		log_amx( szBuffer );
-	#else
-		log_error( AMX_ERR_NATIVE, szBuffer );
-	#endif
+#if defined UseSafeErrorLogs
+	log_amx( szBuffer );
 #else
-	#pragma unused szAction, szError
+	log_error( AMX_ERR_NATIVE, szBuffer );
 #endif
 
 	return true;
@@ -311,7 +305,7 @@ public bool: native_muzzle_clear( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Clear", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Clear", "MuzzleFlash Array is Invalid." );
 		return false;
 	}
 
@@ -336,7 +330,7 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Get Property", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Get Property", "MuzzleFlash Array is Invalid." );
 		return false;
 	}
 
@@ -345,7 +339,7 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 	new iMuzzleId = get_param( arg_muzzle_id );
 	if ( !IsMuzzleValid( iMuzzleId ) )
 	{
-		PrepareErrorLog( "Muzzle Get Property", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Get Property", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return false;
 	}
 
@@ -366,7 +360,7 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_FLAGS: return aData[ eMuzzle_Flags ];
 		default:
 		{
-			PrepareErrorLog( "Muzzle Get Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
+			WriteErrorLogs && PrepareErrorLog( "Muzzle Get Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
 			return false;
 		}
 	}
@@ -378,7 +372,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Set Property", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Set Property", "MuzzleFlash Array is Invalid." );
 		return false;
 	}
 
@@ -387,7 +381,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 	new iMuzzleId = get_param( arg_muzzle_id );
 	if ( !IsMuzzleValid( iMuzzleId ) )
 	{
-		PrepareErrorLog( "Muzzle Set Property", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Set Property", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return false;
 	}
 
@@ -416,7 +410,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_FLAGS: aData[ eMuzzle_Flags ] = get_param_byref( arg_value );
 		default:
 		{
-			PrepareErrorLog( "Muzzle Set Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
+			WriteErrorLogs && PrepareErrorLog( "Muzzle Set Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
 			return false;
 		}
 	}
@@ -430,7 +424,7 @@ public native_muzzle_find( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Find", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Find", "MuzzleFlash Array is Invalid." );
 		return -1;
 	}
 
@@ -439,14 +433,14 @@ public native_muzzle_find( const iPlugin, const iParams )
 	new pPlayer = get_param( arg_player );
 	if ( !is_user_connected( pPlayer ) )
 	{
-		PrepareErrorLog( "Muzzle Find", "Invalid Player (%i)", pPlayer );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Find", "Invalid Player (%i)", pPlayer );
 		return -1;
 	}
 
 	new iMuzzleId = get_param( arg_muzzle_id );
 	if ( !IsMuzzleValid( iMuzzleId, true ) )
 	{
-		PrepareErrorLog( "Muzzle Find", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Find", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return -1;
 	}
 
@@ -466,7 +460,7 @@ public native_muzzle_draw( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Draw", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "MuzzleFlash Array is Invalid." );
 		return -1;
 	}
 
@@ -475,27 +469,27 @@ public native_muzzle_draw( const iPlugin, const iParams )
 	new pPlayer = get_param( arg_player );
 	if ( !is_user_connected( pPlayer ) )
 	{
-		PrepareErrorLog( "Muzzle Draw", "Invalid Player (%i)", PluginPrefix, pPlayer );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "Invalid Player (%i)", PluginPrefix, pPlayer );
 		return -1;
 	}
 
 	new iMuzzleId = get_param( arg_muzzle_id );
 	if ( !IsMuzzleValid( iMuzzleId ) )
 	{
-		PrepareErrorLog( "Muzzle Draw", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return -1;
 	}
 
 	new aData[ eMuzzleFlashData ]; ArrayGetArray( gl_arMuzzleFlashData, iMuzzleId, aData );
 	if ( IsNullString( aData[ eMuzzle_ClassName ] ) )
 	{
-		PrepareErrorLog( "Muzzle Draw", "Can't create a MuzzleFlash with empty classname." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "Can't create a MuzzleFlash with empty classname." );
 		return -1;
 	}
 
 	if ( IsNullString( aData[ eMuzzle_Sprite ] ) )
 	{
-		PrepareErrorLog( "Muzzle Draw", "MuzzleFlash with index (%i) not found.", iMuzzleId );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "MuzzleFlash with index (%i) not found.", iMuzzleId );
 		return -1;
 	}
 
@@ -506,7 +500,7 @@ public bool: native_muzzle_destroy( const iPlugin, const iParams )
 {
 	if ( IsArrayInvalid( gl_arMuzzleFlashData ) )
 	{
-		PrepareErrorLog( "Muzzle Destroy", "MuzzleFlash Array is Invalid." );
+		WriteErrorLogs && PrepareErrorLog( "Muzzle Destroy", "MuzzleFlash Array is Invalid." );
 		return false;
 	}
 
