@@ -272,9 +272,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 		return false;
 	}
 
-#if AMXX_VERSION_NUM < 183
 	return false;
-#endif
 }
 
 PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
