@@ -1,6 +1,6 @@
-public stock const PluginName[ ] =			"[API] Addon: MuzzleFlash";
-public stock const PluginVersion[ ] =		"1.2";
-public stock const PluginAuthor[ ] =		"Yoshioka Haruki";
+new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
+new const PluginVersion[ ] =			"1.3";
+new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
 #include <amxmodx>
@@ -27,7 +27,7 @@ public stock const PluginAuthor[ ] =		"Yoshioka Haruki";
 	#define var_impulse						pev_impulse
 	#define var_frame						pev_frame
 	#define var_classname					pev_classname
-	#define var_spawnflags					pev_spawnflags
+	#define var_playerclass					pev_playerclass
 	#define var_rendermode					pev_rendermode
 	#define var_rendercolor					pev_rendercolor
 	#define var_renderamt					pev_renderamt
@@ -44,6 +44,11 @@ public stock const PluginAuthor[ ] =		"Yoshioka Haruki";
 
 	#define rg_create_entity				fm_create_entity
 	#define is_nullent(%0)					( %0 == NULLENT || pev_valid( %0 ) != PDATA_SAFE )
+#endif
+
+#if AMXX_VERSION_NUM <= 183
+	#define MAX_NAME_LENGTH					32
+	#define MAX_RESOURCE_PATH_LENGTH		64
 #endif
 
 /* ~ [ Plugin Settings ] ~ */
@@ -90,6 +95,7 @@ new gl_iMuzzlesCount;
 #define var_max_frame						var_yaw_speed // CEntity: env_sprite
 #define var_last_time						var_pitch_speed // CEntity: env_sprite
 #define var_update_frame					var_ideal_yaw // CEntity: env_sprite
+#define var_sprite_flags					var_playerclass // CEntity: env_sprite
 
 /* ~ [ AMX Mod X ] ~ */
 public plugin_natives( )
@@ -154,7 +160,7 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 #else
 	set_entvar_string( pSprite, var_classname, gl_iszAllocString_Muzzleflash );
 #endif
-	set_entvar( pSprite, var_spawnflags, aData[ eMuzzle_Flags ] );
+	set_entvar( pSprite, var_sprite_flags, aData[ eMuzzle_Flags ] );
 	set_entvar( pSprite, var_impulse, iMuzzleId );
 
 	set_entvar( pSprite, var_rendermode, kRenderTransAdd );
@@ -200,6 +206,7 @@ public CMuzzleFlash__Think( const pSprite )
 	if ( !IsMuzzleValid( get_entvar( pSprite, var_impulse ) ) )
 		return;
 
+	static iSpawnFlags; iSpawnFlags = get_entvar( pSprite, var_sprite_flags );
 	static Float: flGameTime; flGameTime = get_gametime( );
 	static Float: flFrame; get_entvar( pSprite, var_frame, flFrame );
 	static Float: flMaxFrame; get_entvar( pSprite, var_max_frame, flMaxFrame );
@@ -210,7 +217,7 @@ public CMuzzleFlash__Think( const pSprite )
 	flFrame += ( flFrameRate * ( flGameTime - flLastTime ) );
 	if ( flFrame > flMaxFrame )
 	{
-		if ( get_entvar( pSprite, var_spawnflags ) == MuzzleFlashFlag_Once )
+		if ( iSpawnFlags == MuzzleFlashFlag_Once )
 		{
 			UTIL_KillEntity( pSprite );
 			return;
@@ -264,6 +271,10 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 		WriteErrorLogs && PrepareErrorLog( "Muzzle Destroy", "Invalid Player (%i)", pPlayer );
 		return false;
 	}
+
+#if AMXX_VERSION_NUM < 183
+	return false;
+#endif
 }
 
 PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
@@ -284,7 +295,7 @@ PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
 /* ~ [ Natives ] ~ */
 public native_muzzle_init( const iPlugin, const iParams )
 {
-	new aData[ eMuzzleFlashData ];
+	new any: aData[ eMuzzleFlashData ];
 	aData[ eMuzzle_ClassName ] = EntityMuzzleFlashClassname;
 	aData[ eMuzzle_Sprite ] = EOS;
 	aData[ eMuzzle_Attachment ] = 1;
@@ -386,7 +397,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 	}
 
 	new iProperty = get_param( arg_property );
-	new aData[ eMuzzleFlashData ]; ArrayGetArray( gl_arMuzzleFlashData, iMuzzleId, aData );
+	new any: aData[ eMuzzleFlashData ]; ArrayGetArray( gl_arMuzzleFlashData, iMuzzleId, aData );
 
 	switch ( eMuzzleProperties: iProperty )
 	{
@@ -516,8 +527,8 @@ stock bool: IsMuzzleValid( const any: iMuzzleId, const bool: bAllowInvalid = fal
 {
 	if ( bAllowInvalid )
 		return ( Invalid_MuzzleFlash <= iMuzzleId < gl_iMuzzlesCount );
-	else
-		return ( Invalid_MuzzleFlash < iMuzzleId < gl_iMuzzlesCount );
+
+	return ( Invalid_MuzzleFlash < iMuzzleId < gl_iMuzzlesCount );
 }
 
 /* -> Destroy Entity <- */
