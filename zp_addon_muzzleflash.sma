@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.3";
+new const PluginVersion[ ] =			"1.4";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -11,6 +11,10 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
  * If ur server can't use Re modules, just comment out or delete this line
  */
 #include <reapi>
+
+#if defined _reapi_included
+	#define ShowSpriteOnlyForOwner
+#endif
 
 #if !defined _reapi_included
 	#include <hamsandwich>
@@ -193,6 +197,10 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	#endif
 	}
 
+#if defined _reapi_included && defined ShowSpriteOnlyForOwner
+	set_entvar( pSprite, var_effects, get_entvar( pSprite, var_effects ) | EF_OWNER_VISIBILITY );
+#endif
+
 	return pSprite;
 }
 
@@ -272,7 +280,9 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 		return false;
 	}
 
+#if AMXX_VERSION_NUM <= 183
 	return false;
+#endif
 }
 
 PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
