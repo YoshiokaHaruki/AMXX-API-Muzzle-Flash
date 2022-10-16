@@ -2,6 +2,10 @@
 API Plugin for add custom Muzzle Flash for Weapons in Counter Strike 1.6
 
 ---
+### Install
+* When installing, it is advisable to install this plugin in plugins-*.ini before all plugins where this API plugin is used
+
+---
 ### Requirements
 ReAPI version:
 * ReHLDS, ReGameDLL, Metamod-R (or Metamod-P), AMX Mod X, ReAPI.
