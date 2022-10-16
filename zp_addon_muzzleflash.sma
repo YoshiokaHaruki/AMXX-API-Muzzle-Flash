@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.4";
+new const PluginVersion[ ] =			"1.4.1";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -12,9 +12,16 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
  */
 #include <reapi>
 
-#if defined _reapi_included
-	#define ShowSpriteOnlyForOwner
-#endif
+/**
+ * Display the MuzzleFlash sprite only for the player who should display this sprite
+ * 
+ * With ReAPI - method with var_effects EF_OWNER_VISIBILITY
+ * Without ReAPI - method with var_groupinfo
+ * 
+ * If you have problems with enabled ShowSpriteOnlyForOwner,
+ * maybe it's the 'Semiclip' module/plugin, it's worth abandoning this setting or 'Semiclip'
+ */
+#define ShowSpriteOnlyForOwner
 
 #if !defined _reapi_included
 	#include <hamsandwich>
@@ -45,7 +52,9 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 	#define var_yaw_speed					pev_yaw_speed
 	#define var_pitch_speed					pev_pitch_speed
 	#define var_ideal_yaw					pev_ideal_yaw
+	#define var_groupinfo					pev_groupinfo
 
+	#define BIT(%0)							( 1<<( %0 ) )
 	#define rg_create_entity				fm_create_entity
 	#define is_nullent(%0)					( %0 == NULLENT || pev_valid( %0 ) != PDATA_SAFE )
 #endif
@@ -134,6 +143,11 @@ public plugin_init( )
 #endif
 }
 
+#if !defined _reapi_included && defined ShowSpriteOnlyForOwner
+	public client_putinserver( pPlayer )
+		set_entvar( pPlayer, var_groupinfo, get_entvar( pPlayer, var_groupinfo ) | ( BIT( 0 )|BIT( pPlayer ) ) );
+#endif
+
 /* ~ [ Other ] ~ */
 public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ] )
 {
@@ -197,8 +211,12 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	#endif
 	}
 
-#if defined _reapi_included && defined ShowSpriteOnlyForOwner
-	set_entvar( pSprite, var_effects, get_entvar( pSprite, var_effects ) | EF_OWNER_VISIBILITY );
+#if defined ShowSpriteOnlyForOwner
+	#if defined _reapi_included
+		set_entvar( pSprite, var_effects, get_entvar( pSprite, var_effects ) | EF_OWNER_VISIBILITY );
+	#else
+		set_entvar( pSprite, var_groupinfo, BIT( pPlayer ) );
+	#endif
 #endif
 
 	return pSprite;
