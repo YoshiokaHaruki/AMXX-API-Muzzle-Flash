@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.4.1";
+new const PluginVersion[ ] =			"1.4.2";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -95,13 +95,24 @@ enum _: eMuzzleFlashData {
 	eMuzzle_Flags
 };
 new Array: gl_arMuzzleFlashData;
+
 new gl_iMuzzlesCount;
+new gl_bitsUserConnected;
 
 #if !defined _reapi_included
 	new gl_iszAllocString_Muzzleflash;
 #endif
 
 /* ~ [ Macroses ] ~ */
+#if !defined BIT
+	#define BIT(%0)							( 1<<( %0 ) )
+#endif
+
+#define BIT_ADD(%0,%1)						( %0 |= %1 )
+#define BIT_SUB(%0,%1)						( %0 &= ~%1 )
+#define BIT_VALID(%0,%1)					( %0 & %1 )
+
+#define IsUserConnected(%0)					BIT_VALID( gl_bitsUserConnected, BIT( %0 ) )
 #define IsNullString(%0)					bool: ( %0[ 0 ] == EOS )
 #define IsArrayInvalid(%0)					( %0 == Invalid_Array || !ArraySize( %0 ) )
 
@@ -143,10 +154,23 @@ public plugin_init( )
 #endif
 }
 
+public client_putinserver( pPlayer )
+{
+	BIT_ADD( gl_bitsUserConnected, BIT( pPlayer ) );
+
 #if !defined _reapi_included && defined ShowSpriteOnlyForOwner
-	public client_putinserver( pPlayer )
-		set_entvar( pPlayer, var_groupinfo, get_entvar( pPlayer, var_groupinfo ) | ( BIT( 0 )|BIT( pPlayer ) ) );
+	set_entvar( pPlayer, var_groupinfo, get_entvar( pPlayer, var_groupinfo ) | ( BIT( 0 )|BIT( pPlayer ) ) );
 #endif
+}
+
+public client_disconnected( pPlayer )
+{
+	if ( IsUserConnected( pPlayer ) )
+	{
+		CMuzzleFlash__Destroy( pPlayer, Invalid_MuzzleFlash );
+		BIT_SUB( gl_bitsUserConnected, BIT( pPlayer ) );
+	}
+}
 
 /* ~ [ Other ] ~ */
 public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ] )
@@ -278,7 +302,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 
 		return true;
 	}
-	else if ( is_user_connected( pPlayer ) )
+	else if ( IsUserConnected( pPlayer ) )
 	{
 		// With 'rg_find_ent_by_owner' server can went into an endless loop
 		while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassname, pPlayer ) ) > 0 )
@@ -468,7 +492,7 @@ public native_muzzle_find( const iPlugin, const iParams )
 	enum { arg_player = 1, arg_muzzle_id };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_connected( pPlayer ) )
+	if ( !IsUserConnected( pPlayer ) )
 	{
 		WriteErrorLogs && PrepareErrorLog( "Muzzle Find", "Invalid Player (%i)", pPlayer );
 		return -1;
@@ -504,7 +528,7 @@ public native_muzzle_draw( const iPlugin, const iParams )
 	enum { arg_player = 1, arg_muzzle_id };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_connected( pPlayer ) )
+	if ( !IsUserConnected( pPlayer ) )
 	{
 		WriteErrorLogs && PrepareErrorLog( "Muzzle Draw", "Invalid Player (%i)", PluginPrefix, pPlayer );
 		return -1;
