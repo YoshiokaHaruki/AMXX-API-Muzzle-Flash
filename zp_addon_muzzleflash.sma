@@ -104,10 +104,6 @@ new gl_bitsUserConnected;
 #endif
 
 /* ~ [ Macroses ] ~ */
-#if !defined BIT
-	#define BIT(%0)							( 1<<( %0 ) )
-#endif
-
 #define BIT_ADD(%0,%1)						( %0 |= %1 )
 #define BIT_SUB(%0,%1)						( %0 &= ~%1 )
 #define BIT_VALID(%0,%1)					( %0 & %1 )
