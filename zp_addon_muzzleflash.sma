@@ -104,11 +104,12 @@ new gl_bitsUserConnected;
 #endif
 
 /* ~ [ Macroses ] ~ */
+#define BIT_PLAYER(%0)						( BIT( %0 - 1 ) )
 #define BIT_ADD(%0,%1)						( %0 |= %1 )
 #define BIT_SUB(%0,%1)						( %0 &= ~%1 )
 #define BIT_VALID(%0,%1)					( %0 & %1 )
 
-#define IsUserConnected(%0)					BIT_VALID( gl_bitsUserConnected, BIT( %0 ) )
+#define IsUserConnected(%0)					BIT_VALID( gl_bitsUserConnected, BIT_PLAYER( %0 ) )
 #define IsNullString(%0)					bool: ( %0[ 0 ] == EOS )
 #define IsArrayInvalid(%0)					( %0 == Invalid_Array || !ArraySize( %0 ) )
 
@@ -152,7 +153,7 @@ public plugin_init( )
 
 public client_putinserver( pPlayer )
 {
-	BIT_ADD( gl_bitsUserConnected, BIT( pPlayer ) );
+	BIT_ADD( gl_bitsUserConnected, BIT_PLAYER( pPlayer ) );
 
 #if !defined _reapi_included && defined ShowSpriteOnlyForOwner
 	set_entvar( pPlayer, var_groupinfo, get_entvar( pPlayer, var_groupinfo ) | ( BIT( 0 )|BIT( pPlayer ) ) );
@@ -164,7 +165,7 @@ public client_disconnected( pPlayer )
 	if ( IsUserConnected( pPlayer ) )
 	{
 		CMuzzleFlash__Destroy( pPlayer, Invalid_MuzzleFlash );
-		BIT_SUB( gl_bitsUserConnected, BIT( pPlayer ) );
+		BIT_SUB( gl_bitsUserConnected, BIT_PLAYER( pPlayer ) );
 	}
 }
 
