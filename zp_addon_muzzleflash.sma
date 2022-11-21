@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.4.2";
+new const PluginVersion[ ] =			"1.5";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -92,6 +92,7 @@ enum _: eMuzzleFlashData {
 	Float: eMuzzle_Color[ 3 ],
 	Float: eMuzzle_Alpha,
 	Float: eMuzzle_MaxFrames,
+	Float: eMuzzle_StartTime,
 	eMuzzle_Flags
 };
 new Array: gl_arMuzzleFlashData;
@@ -219,13 +220,16 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	if ( aData[ eMuzzle_Flags ] != MuzzleFlashFlag_Static )
 	{
 		static Float: flGameTime; flGameTime = get_gametime( );
-		
+	
 		set_entvar( pSprite, var_framerate, aData[ eMuzzle_MaxFrames ] / aData[ eMuzzle_FrameRateMlt ] );
 		set_entvar( pSprite, var_max_frame, aData[ eMuzzle_MaxFrames ] - 1.0 );
 
 		set_entvar( pSprite, var_update_frame, aData[ eMuzzle_UpdateTime ] );
-		set_entvar( pSprite, var_last_time, flGameTime );
-		set_entvar( pSprite, var_nextthink, flGameTime );
+		set_entvar( pSprite, var_last_time, flGameTime + aData[ eMuzzle_StartTime ] );
+		set_entvar( pSprite, var_nextthink, flGameTime + aData[ eMuzzle_StartTime ] );
+
+		if ( aData[ eMuzzle_StartTime ] > 0.0 )
+			set_entvar( pSprite, var_effects, get_entvar( pSprite, var_effects ) | EF_NODRAW );
 
 	#if defined _reapi_included
 		SetThink( pSprite, "CMuzzleFlash__Think" );
@@ -252,6 +256,10 @@ public CMuzzleFlash__Think( const pSprite )
 
 	if ( !IsMuzzleValid( get_entvar( pSprite, var_impulse ) ) )
 		return;
+
+	static bitsEffects;
+	if ( ( bitsEffects = get_entvar( pSprite, var_effects ) ) && bitsEffects & EF_NODRAW )
+		set_entvar( pSprite, var_effects, bitsEffects & ~EF_NODRAW );
 
 	static iSpawnFlags; iSpawnFlags = get_entvar( pSprite, var_sprite_flags );
 	static Float: flGameTime; flGameTime = get_gametime( );
@@ -352,6 +360,7 @@ public native_muzzle_init( const iPlugin, const iParams )
 	aData[ eMuzzle_Color ] = Float: { 0.0, 0.0, 0.0 };
 	aData[ eMuzzle_Alpha ] = 255.0;
 	aData[ eMuzzle_MaxFrames ] = 1.0;
+	aData[ eMuzzle_StartTime ] = 0.0;
 	aData[ eMuzzle_Flags ] = MuzzleFlashFlag_Once;
 
 	ArrayPushArray( gl_arMuzzleFlashData, aData );
@@ -416,6 +425,7 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_ALPHA: return aData[ eMuzzle_Alpha ];
 		case ZC_MUZZLE_MAX_FRAMES: return aData[ eMuzzle_MaxFrames ];
 		case ZC_MUZZLE_FLAGS: return aData[ eMuzzle_Flags ];
+		case ZC_MUZZLE_START_TIME: return aData[ eMuzzle_StartTime ];
 		default:
 		{
 			WriteErrorLogs && PrepareErrorLog( "Muzzle Get Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
@@ -466,6 +476,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_ALPHA: aData[ eMuzzle_Alpha ] = get_float_byref( arg_value );
 		case ZC_MUZZLE_MAX_FRAMES: aData[ eMuzzle_MaxFrames ] = get_float_byref( arg_value );
 		case ZC_MUZZLE_FLAGS: aData[ eMuzzle_Flags ] = get_param_byref( arg_value );
+		case ZC_MUZZLE_START_TIME: aData[ eMuzzle_StartTime ] = get_float_byref( arg_value );
 		default:
 		{
 			WriteErrorLogs && PrepareErrorLog( "Muzzle Set Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );

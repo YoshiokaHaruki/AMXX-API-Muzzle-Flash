@@ -29,7 +29,8 @@ enum eMuzzleProperties {
 	ZC_MUZZLE_COLOR,			// Float[ 3 ] | get/set
 	ZC_MUZZLE_ALPHA,			// Float | get/set
 	ZC_MUZZLE_MAX_FRAMES,		// Float | get/set
-	ZC_MUZZLE_FLAGS				// cell | get/set
+	ZC_MUZZLE_FLAGS,			// cell | get/set
+    ZC_MUZZLE_START_TIME        // Float | get/set
 };
 
 /**
