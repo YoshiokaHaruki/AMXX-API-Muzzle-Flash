@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.5";
+new const PluginVersion[ ] =			"1.5v1";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -222,7 +222,7 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 		static Float: flGameTime; flGameTime = get_gametime( );
 	
 		set_entvar( pSprite, var_framerate, aData[ eMuzzle_MaxFrames ] / aData[ eMuzzle_FrameRateMlt ] );
-		set_entvar( pSprite, var_max_frame, aData[ eMuzzle_MaxFrames ] - 1.0 );
+		set_entvar( pSprite, var_max_frame, floatmax( aData[ eMuzzle_MaxFrames ] - 1.0, 1.0 ) );
 
 		set_entvar( pSprite, var_update_frame, aData[ eMuzzle_UpdateTime ] );
 		set_entvar( pSprite, var_last_time, flGameTime + aData[ eMuzzle_StartTime ] );
