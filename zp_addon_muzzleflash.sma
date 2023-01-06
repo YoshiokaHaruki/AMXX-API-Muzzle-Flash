@@ -463,10 +463,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 			get_string( arg_value, aData[ eMuzzle_Sprite ], charsmax( aData[ eMuzzle_Sprite ] ) );
 		
 			if ( !IsNullString( aData[ eMuzzle_Sprite ] ) )
-			{
-				static iModelIndex; iModelIndex = engfunc( EngFunc_PrecacheModel, aData[ eMuzzle_Sprite ] );
-				aData[ eMuzzle_MaxFrames ] = float( engfunc( EngFunc_ModelFrames, iModelIndex ) );
-			}
+				aData[ eMuzzle_MaxFrames ] = float( engfunc( EngFunc_ModelFrames, engfunc( EngFunc_PrecacheModel, aData[ eMuzzle_Sprite ] ) ) );
 		}
 		case ZC_MUZZLE_ATTACHMENT: aData[ eMuzzle_Attachment ] = get_param_byref( arg_value );
 		case ZC_MUZZLE_SCALE: aData[ eMuzzle_Scale ] = get_float_byref( arg_value );
