@@ -20,17 +20,38 @@ enum {
  * set -> zc_muzzle_set_property
  */
 enum eMuzzleProperties {
+	// ClassName of your MuzzleFlash (Default value: "ent_muzzleflash_x")
 	ZC_MUZZLE_CLASSNAME = 0,	// char[ MAX_NAME_LENGTH ] | get
+
+	// Sprite path of your MuzzleFlash (Default value: "")
 	ZC_MUZZLE_SPRITE,			// char[ MAX_RESOURCE_PATH_LENGTH ] | get/set
+
+	// Attachment for MuzzleFlash (Default value: 1)
 	ZC_MUZZLE_ATTACHMENT,		// cell | get/set
+
+	// Scale of MuzzleFlash (Default value: 0.05)
 	ZC_MUZZLE_SCALE,			// Float | get/set
+
+	// Update Time (var_nextthink) of MuzzleFlash (Default value: 0.035)
 	ZC_MUZZLE_UPDATE_TIME,		// Float | get/set
+
+	// MuzzleFlash display Time (Default value: 1.0)
 	ZC_MUZZLE_FRAMERATE_MLT,	// Float | get/set
+
+	// Color of MuzzleFlash (RGB) (Default value: 0.0, 0.0, 0.0)
 	ZC_MUZZLE_COLOR,			// Float[ 3 ] | get/set
+
+	// Brightness of MuzzleFlash (Default value: 255.0) 
 	ZC_MUZZLE_ALPHA,			// Float | get/set
+
+	// Max frames of MuzzleFlash (It is specified automatically based on how many frames there are in the sprite)
 	ZC_MUZZLE_MAX_FRAMES,		// Float | get/set
+
+	// Flags of MuzzleFlash. Specify values MuzzleFlashFlag_* (Default value: MuzzleFlashFlag_Once)
 	ZC_MUZZLE_FLAGS,			// cell | get/set
-    ZC_MUZZLE_START_TIME        // Float | get/set
+
+	// After how long to show MuzzleFlash (Default value: 0.0)
+	ZC_MUZZLE_START_TIME        // Float | get/set
 };
 
 /**
