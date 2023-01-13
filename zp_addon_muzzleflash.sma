@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.5v1";
+new const PluginVersion[ ] =			"1.5.2";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -53,6 +53,7 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 	#define var_pitch_speed					pev_pitch_speed
 	#define var_ideal_yaw					pev_ideal_yaw
 	#define var_groupinfo					pev_groupinfo
+	#defien var_effects						pev_effects 
 
 	#define BIT(%0)							( 1<<( %0 ) )
 	#define rg_create_entity				fm_create_entity
