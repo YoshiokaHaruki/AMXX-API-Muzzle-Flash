@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.5.2";
+new const PluginVersion[ ] =			"1.5.3";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -53,7 +53,7 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 	#define var_pitch_speed					pev_pitch_speed
 	#define var_ideal_yaw					pev_ideal_yaw
 	#define var_groupinfo					pev_groupinfo
-	#defien var_effects						pev_effects 
+	#define var_effects						pev_effects 
 
 	#define BIT(%0)							( 1<<( %0 ) )
 	#define rg_create_entity				fm_create_entity
@@ -180,17 +180,26 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	if ( iMaxEntities - engfunc( EngFunc_NumberOfEntities ) <= LOWER_LIMIT_OF_ENTITIES )
 		return NULLENT;
 
-	static pSprite; pSprite = fm_find_ent_by_owner( NULLENT, aData[ eMuzzle_ClassName ], pPlayer );
+	static pSprite; pSprite = 33;
+	static bool: bCreateNew; bCreateNew = true;
+	while ( ( pSprite = fm_find_ent_by_owner( pSprite, aData[ eMuzzle_ClassName ], pPlayer ) ) > 0 )
+	{
+		if ( get_entvar( pSprite, var_impulse ) != iMuzzleId )
+			continue;
+
+		bCreateNew = false;
+		break;
+	}
 
 	// If finded invalid entity or valid, but another iMuzzleId, try create new
-	if ( is_nullent( pSprite ) || !is_nullent( pSprite ) && get_entvar( pSprite, var_impulse ) != iMuzzleId )
+	if ( bCreateNew && ( is_nullent( pSprite ) || !is_nullent( pSprite ) && get_entvar( pSprite, var_impulse ) != iMuzzleId ) )
 	{
 		if ( ( pSprite = rg_create_entity( EntityMuzzleFlashReference ) ) && is_nullent( pSprite ) )
 			return NULLENT;
 	}
 
 	// If finded valid entity and iMuzzleId is correct, reset frame to 0.0
-	else if ( get_entvar( pSprite, var_impulse ) == iMuzzleId )
+	else if ( !bCreateNew || get_entvar( pSprite, var_impulse ) == iMuzzleId )
 	{
 		set_entvar( pSprite, var_frame, 0.0 );
 		return pSprite;
