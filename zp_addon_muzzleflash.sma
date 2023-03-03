@@ -1,5 +1,5 @@
 new const PluginName[ ] =				"[API] Addon: MuzzleFlash";
-new const PluginVersion[ ] =			"1.5.3";
+new const PluginVersion[ ] =			"1.6";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
@@ -53,7 +53,7 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 	#define var_pitch_speed					pev_pitch_speed
 	#define var_ideal_yaw					pev_ideal_yaw
 	#define var_groupinfo					pev_groupinfo
-	#define var_effects						pev_effects 
+	#define var_effects						pev_effects
 
 	#define BIT(%0)							( 1<<( %0 ) )
 	#define rg_create_entity				fm_create_entity
@@ -80,10 +80,11 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 new const PluginPrefix[ ] =					"[API:MuzzleFlash]";
 new const EntityMuzzleFlashReference[ ] =	"env_sprite";
-new const EntityMuzzleFlashClassname[ ] =	"ent_muzzleflash_x";
+new const EntityMuzzleFlashClassName[ ] =	"ent_muzzleflash_x";
 
 /* ~ [ Params ] ~ */
 enum _: eMuzzleFlashData {
+	eMuzzle_Source[ MAX_NAME_LENGTH ],
 	eMuzzle_ClassName[ MAX_NAME_LENGTH ],
 	eMuzzle_Sprite[ MAX_RESOURCE_PATH_LENGTH ],
 	eMuzzle_Attachment,
@@ -100,6 +101,10 @@ new Array: gl_arMuzzleFlashData;
 
 new gl_iMuzzlesCount;
 new gl_bitsUserConnected;
+
+#if AMXX_VERSION_NUM <= 182
+	new MaxClients;
+#endif
 
 #if !defined _reapi_included
 	new gl_iszAllocString_Muzzleflash;
@@ -123,6 +128,8 @@ new gl_bitsUserConnected;
 /* ~ [ AMX Mod X ] ~ */
 public plugin_natives( )
 {
+	register_library( "api_muzzleflash" );
+
 	register_native( "zc_muzzle_init", "native_muzzle_init" );
 	register_native( "zc_muzzle_clear", "native_muzzle_clear" );
 	register_native( "zc_muzzle_get_property", "native_muzzle_get_property" );
@@ -139,7 +146,7 @@ public plugin_precache( )
 
 #if !defined _reapi_included
 	/* -> Alloc String <- */
-	gl_iszAllocString_Muzzleflash = engfunc( EngFunc_AllocString, EntityMuzzleFlashClassname );
+	gl_iszAllocString_Muzzleflash = engfunc( EngFunc_AllocString, EntityMuzzleFlashClassName );
 #endif
 }
 
@@ -150,6 +157,30 @@ public plugin_init( )
 #if !defined _reapi_included
 	/* -> HamSandwich <- */
 	RegisterHam( Ham_Think, EntityMuzzleFlashReference, "CMuzzleFlash__Think", false );
+#endif
+
+	/* -> Register Commands <- */
+	register_concmd( "zc_display_muzzles", "ConsoleCommand__DisplayMuzzles", ADMIN_RCON, "Display all Muzzle-Flashes" );
+}
+
+public plugin_cfg( )
+{
+	/* -> Register Cvar's <- */
+#if AMXX_VERSION_NUM <= 182
+	register_cvar( "API_MuzzleFlash_Version", PluginVersion, ( FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED ) );
+#else
+	create_cvar( "API_MuzzleFlash_Version", PluginVersion, ( FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED ) );
+#endif
+
+	/* -> Other <- */
+	server_print( "%s Loaded %i Muzzle-Flashes.", PluginPrefix, gl_iMuzzlesCount );
+
+#if AMXX_VERSION_NUM <= 182
+	#if defined _reapi_included
+		MaxClients = get_member_game( m_nMaxPlayers );
+	#else
+		MaxClients = get_maxplayers( );
+	#endif
 #endif
 }
 
@@ -171,6 +202,29 @@ public client_disconnected( pPlayer )
 	}
 }
 
+public ConsoleCommand__DisplayMuzzles( const pCaller, const bitsFlags )
+{
+	if ( ~get_user_flags( pCaller ) & bitsFlags )
+		return PLUGIN_HANDLED;
+
+	static const FlagNames[ ][ ] = {
+		"Once", "Static", "Cyclical"
+	};
+
+	new any: aData[ eMuzzleFlashData ];
+	console_print( pCaller, "^n  Id  Sprite Path                      Attach  Scale  Mlt    Alpha  Frames  Start  Flag       Source^n" );
+
+	for ( new i; i < gl_iMuzzlesCount; i++ )
+	{
+		ArrayGetArray( gl_arMuzzleFlashData, i, aData );
+		console_print( pCaller, " %3d  %-32s %i       %.3f  %.3f  %.1f  %-5d   %.3f  %-9s  %s", i, aData[ eMuzzle_Sprite ][ 8 ], aData[ eMuzzle_Attachment ], Float: aData[ eMuzzle_Scale ], Float: aData[ eMuzzle_FrameRateMlt ], Float: aData[ eMuzzle_Alpha ], floatround( aData[ eMuzzle_MaxFrames ] ), aData[ eMuzzle_StartTime ], FlagNames[ aData[ eMuzzle_Flags ] ], aData[ eMuzzle_Source ] );
+	}
+
+	console_print( pCaller, "  --------------^n  %i Total Muzzle-Flashes", gl_iMuzzlesCount );
+
+	return PLUGIN_HANDLED;
+}
+
 /* ~ [ Other ] ~ */
 public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ] )
 {
@@ -180,7 +234,7 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	if ( iMaxEntities - engfunc( EngFunc_NumberOfEntities ) <= LOWER_LIMIT_OF_ENTITIES )
 		return NULLENT;
 
-	static pSprite; pSprite = 33;
+	static pSprite; pSprite = MaxClients;
 	static bool: bCreateNew; bCreateNew = true;
 	while ( ( pSprite = fm_find_ent_by_owner( pSprite, aData[ eMuzzle_ClassName ], pPlayer ) ) > 0 )
 	{
@@ -269,9 +323,11 @@ public CMuzzleFlash__Think( const pSprite )
 
 	static bitsEffects;
 	if ( ( bitsEffects = get_entvar( pSprite, var_effects ) ) && bitsEffects & EF_NODRAW )
-		set_entvar( pSprite, var_effects, bitsEffects & ~EF_NODRAW );
+	{
+		BIT_SUB( bitsEffects, EF_NODRAW );
+		set_entvar( pSprite, var_effects, bitsEffects );
+	}
 
-	static iSpawnFlags; iSpawnFlags = get_entvar( pSprite, var_sprite_flags );
 	static Float: flGameTime; flGameTime = get_gametime( );
 	static Float: flFrame; get_entvar( pSprite, var_frame, flFrame );
 	static Float: flMaxFrame; get_entvar( pSprite, var_max_frame, flMaxFrame );
@@ -282,7 +338,7 @@ public CMuzzleFlash__Think( const pSprite )
 	flFrame += ( flFrameRate * ( flGameTime - flLastTime ) );
 	if ( flFrame > flMaxFrame )
 	{
-		if ( iSpawnFlags == MuzzleFlashFlag_Once )
+		if ( get_entvar( pSprite, var_sprite_flags ) == MuzzleFlashFlag_Once )
 		{
 			UTIL_KillEntity( pSprite );
 			return;
@@ -303,10 +359,10 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 		return false;
 	}
 
-	static pEntity; pEntity = NULLENT;
+	static pEntity; pEntity = MaxClients;
 	if ( pPlayer == 0 )
 	{
-		while ( ( pEntity = fm_find_ent_by_class( pEntity, EntityMuzzleFlashClassname ) ) > 0 )
+		while ( ( pEntity = fm_find_ent_by_class( pEntity, EntityMuzzleFlashClassName ) ) > 0 )
 		{
 			if ( iMuzzleId > Invalid_MuzzleFlash && MuzzleFlash: get_entvar( pEntity, var_impulse ) != iMuzzleId )
 				continue;
@@ -320,7 +376,7 @@ public bool: CMuzzleFlash__Destroy( const pPlayer, const MuzzleFlash: iMuzzleId 
 	else if ( IsUserConnected( pPlayer ) )
 	{
 		// With 'rg_find_ent_by_owner' server can went into an endless loop
-		while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassname, pPlayer ) ) > 0 )
+		while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassName, pPlayer ) ) > 0 )
 		{
 			if ( iMuzzleId > Invalid_MuzzleFlash && MuzzleFlash: get_entvar( pEntity, var_impulse ) != iMuzzleId )
 				continue;
@@ -360,8 +416,11 @@ PrepareErrorLog( const szAction[ ], const szError[ ], any:... )
 /* ~ [ Natives ] ~ */
 public native_muzzle_init( const iPlugin, const iParams )
 {
+	new iMuzzleKey = ++gl_iMuzzlesCount - 1;
+
 	new any: aData[ eMuzzleFlashData ];
-	aData[ eMuzzle_ClassName ] = EntityMuzzleFlashClassname;
+	get_plugin( iPlugin, aData[ eMuzzle_Source ], charsmax( aData[ eMuzzle_Source ] ) );
+	aData[ eMuzzle_ClassName ] = EntityMuzzleFlashClassName;
 	aData[ eMuzzle_Sprite ] = EOS;
 	aData[ eMuzzle_Attachment ] = 1;
 	aData[ eMuzzle_Scale ] = 0.05;
@@ -375,7 +434,7 @@ public native_muzzle_init( const iPlugin, const iParams )
 
 	ArrayPushArray( gl_arMuzzleFlashData, aData );
 
-	return ++gl_iMuzzlesCount - 1;
+	return iMuzzleKey;
 }
 
 public bool: native_muzzle_clear( const iPlugin, const iParams )
@@ -473,7 +532,10 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 			get_string( arg_value, aData[ eMuzzle_Sprite ], charsmax( aData[ eMuzzle_Sprite ] ) );
 		
 			if ( !IsNullString( aData[ eMuzzle_Sprite ] ) )
-				aData[ eMuzzle_MaxFrames ] = float( engfunc( EngFunc_ModelFrames, engfunc( EngFunc_PrecacheModel, aData[ eMuzzle_Sprite ] ) ) );
+			{
+				static iModelIndex; iModelIndex = engfunc( EngFunc_PrecacheModel, aData[ eMuzzle_Sprite ] );
+				aData[ eMuzzle_MaxFrames ] = float( engfunc( EngFunc_ModelFrames, iModelIndex ) );
+			}
 		}
 		case ZC_MUZZLE_ATTACHMENT: aData[ eMuzzle_Attachment ] = get_param_byref( arg_value );
 		case ZC_MUZZLE_SCALE: aData[ eMuzzle_Scale ] = get_float_byref( arg_value );
@@ -521,7 +583,7 @@ public native_muzzle_find( const iPlugin, const iParams )
 	}
 
 	new pEntity = NULLENT;
-	while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassname, pPlayer ) ) > 0 )
+	while ( ( pEntity = fm_find_ent_by_owner( pEntity, EntityMuzzleFlashClassName, pPlayer ) ) > 0 )
 	{
 		if ( MuzzleFlash: iMuzzleId > Invalid_MuzzleFlash && get_entvar( pEntity, var_impulse ) != iMuzzleId )
 			continue;
