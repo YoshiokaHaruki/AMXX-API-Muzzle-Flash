@@ -7,10 +7,15 @@ enum MuzzleFlash {
 	Invalid_MuzzleFlash = -1
 };
 
+#if !defined _cssdk_const_included
+	#define BIT(%0)                         (1<<(%0))
+#endif 
+
 enum {
-	MuzzleFlashFlag_Once = 0,	// Destroy after all frames are played back
-	MuzzleFlashFlag_Static,		// Static MuzzleFlash (Can destroy by 'zc_muzzle_destroy')
-	MuzzleFlashFlag_Cyclical	// The sprite is played in a circle until it is removed using 'zc_muzzle_destroy'
+	MuzzleFlashFlag_Once = BIT(0),		// Destroy after all frames are played back
+	MuzzleFlashFlag_Static = BIT(1),	// Static MuzzleFlash (Can destroy by 'zc_muzzle_destroy')
+	MuzzleFlashFlag_Cyclical = BIT(2),	// The sprite is played in a circle until it is removed using 'zc_muzzle_destroy'
+	MuzzleFlashFlag_RandomAngle = BIT(3),	// The sprite will choose random angle sprite every call
 };
 
 /**
@@ -51,7 +56,10 @@ enum eMuzzleProperties {
 	ZC_MUZZLE_FLAGS,		// cell | get/set
 
 	// After how long to show MuzzleFlash (Default value: 0.0)
-	ZC_MUZZLE_START_TIME        	// Float | get/set
+	ZC_MUZZLE_START_TIME,        	// Float | get/set
+
+	// Angles of muzzleflash (Default value: 0.0 to 359.0)
+	ZC_MUZZLE_ANGLE        	// Float | get/set
 };
 
 /**

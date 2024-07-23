@@ -21,7 +21,7 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
  * If you have problems with enabled ShowSpriteOnlyForOwner,
  * maybe it's the 'Semiclip' module/plugin, it's worth abandoning this setting or 'Semiclip'
  */
-#define ShowSpriteOnlyForOwner
+// #define ShowSpriteOnlyForOwner
 
 #if !defined _reapi_included
 	#include <hamsandwich>
@@ -54,8 +54,10 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 	#define var_ideal_yaw					pev_ideal_yaw
 	#define var_groupinfo					pev_groupinfo
 	#define var_effects						pev_effects
+	#define var_angles						pev_angles
+	#define var_movetype					pev_movetype
 
-	#define BIT(%0)							( 1<<( %0 ) )
+	// #define BIT(%0)							( 1<<( %0 ) )
 	#define rg_create_entity				fm_create_entity
 	#define is_nullent(%0)					( %0 == NULLENT || pev_valid( %0 ) != PDATA_SAFE )
 #endif
@@ -95,6 +97,7 @@ enum _: eMuzzleFlashData {
 	Float: eMuzzle_Alpha,
 	Float: eMuzzle_MaxFrames,
 	Float: eMuzzle_StartTime,
+	Float: eMuzzle_Angle,
 	eMuzzle_Flags
 };
 new Array: gl_arMuzzleFlashData;
@@ -137,10 +140,7 @@ public plugin_natives( )
 	register_native( "zc_muzzle_find", "native_muzzle_find" );
 	register_native( "zc_muzzle_draw", "native_muzzle_draw" );
 	register_native( "zc_muzzle_destroy", "native_muzzle_destroy" );
-}
 
-public plugin_precache( )
-{
 	/* -> Array's <- */
 	gl_arMuzzleFlashData = ArrayCreate( eMuzzleFlashData );
 
@@ -148,6 +148,17 @@ public plugin_precache( )
 	/* -> Alloc String <- */
 	gl_iszAllocString_Muzzleflash = engfunc( EngFunc_AllocString, EntityMuzzleFlashClassName );
 #endif
+}
+
+public plugin_precache( )
+{
+// 	/* -> Array's <- */
+// 	gl_arMuzzleFlashData = ArrayCreate( eMuzzleFlashData );
+
+// #if !defined _reapi_included
+// 	/* -> Alloc String <- */
+// 	gl_iszAllocString_Muzzleflash = engfunc( EngFunc_AllocString, EntityMuzzleFlashClassName );
+// #endif
 }
 
 public plugin_init( )
@@ -256,6 +267,13 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	else if ( !bCreateNew || get_entvar( pSprite, var_impulse ) == iMuzzleId )
 	{
 		set_entvar( pSprite, var_frame, 0.0 );
+
+		if ((aData[ eMuzzle_Flags ] & (MuzzleFlashFlag_RandomAngle|MuzzleFlashFlag_Once)) == (MuzzleFlashFlag_RandomAngle|MuzzleFlashFlag_Once)) {
+			new Float:flAngles[3];
+			flAngles[2] = random_float(0.0, 180.0);
+			set_entvar(pSprite, var_angles, flAngles);
+		}
+
 		return pSprite;
 	}
 
@@ -279,11 +297,17 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	engfunc( EngFunc_SetModel, pSprite, aData[ eMuzzle_Sprite ] );
 	dllfunc( DLLFunc_Spawn, pSprite );
 
+	
+	set_entvar( pSprite, var_movetype, MOVETYPE_FLY );
 	set_entvar( pSprite, var_frame, 0.0 );
 
-	if ( aData[ eMuzzle_Flags ] != MuzzleFlashFlag_Static )
+	new Float:vecAngles[3];
+	vecAngles[2] = aData[ eMuzzle_Angle ];
+	set_entvar( pSprite, var_angles, vecAngles );
+
+	if ( ~aData[ eMuzzle_Flags ] & MuzzleFlashFlag_Static )
 	{
-		static Float: flGameTime; flGameTime = get_gametime( );
+		static Float: flGameTime; flGameTime = get_gametime();
 	
 		set_entvar( pSprite, var_framerate, aData[ eMuzzle_MaxFrames ] / aData[ eMuzzle_FrameRateMlt ] );
 		set_entvar( pSprite, var_max_frame, floatmax( aData[ eMuzzle_MaxFrames ] - 1.0, 1.0 ) );
@@ -308,18 +332,24 @@ public CMuzzleFlash__SpawnEntity( const pPlayer, const iMuzzleId, const aData[ ]
 	#endif
 #endif
 
+	#if defined _reapi_included
+		set_entvar( pSprite, var_effects, get_entvar( pSprite, var_effects ) | EF_FORCEVISIBILITY );
+	#endif
+
 	return pSprite;
 }
 
 public CMuzzleFlash__Think( const pSprite )
 {
 #if !defined _reapi_included
-	if ( is_nullent( pSprite ) || get_entvar( pSprite, var_classname ) != gl_iszAllocString_Muzzleflash )
+	if ( is_nullent( pSprite ) || get_entvar( pSprite, var_classname ) != gl_iszAllocString_Muzzleflash ) {
 		return;
+	}
 #endif
 
-	if ( !IsMuzzleValid( get_entvar( pSprite, var_impulse ) ) )
+	if ( !IsMuzzleValid( get_entvar( pSprite, var_impulse ) ) ) {
 		return;
+	}
 
 	static bitsEffects;
 	if ( ( bitsEffects = get_entvar( pSprite, var_effects ) ) && bitsEffects & EF_NODRAW )
@@ -334,11 +364,18 @@ public CMuzzleFlash__Think( const pSprite )
 	static Float: flFrameRate; get_entvar( pSprite, var_framerate, flFrameRate );
 	static Float: flLastTime; get_entvar( pSprite, var_last_time, flLastTime );
 	static Float: flUpdateFrame; get_entvar( pSprite, var_update_frame, flUpdateFrame );
+	static bitsSprFlags; bitsSprFlags = get_entvar( pSprite, var_sprite_flags );
+
+	if ((bitsSprFlags & MuzzleFlashFlag_RandomAngle)) {
+		new Float:flAngles[3];
+		flAngles[2] = random_float(0.0, 180.0);
+		set_entvar(pSprite, var_angles, flAngles);
+	}
 
 	flFrame += ( flFrameRate * ( flGameTime - flLastTime ) );
 	if ( flFrame > flMaxFrame )
 	{
-		if ( get_entvar( pSprite, var_sprite_flags ) == MuzzleFlashFlag_Once )
+		if ( bitsSprFlags & MuzzleFlashFlag_Once )
 		{
 			UTIL_KillEntity( pSprite );
 			return;
@@ -495,6 +532,7 @@ public any: native_muzzle_get_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_MAX_FRAMES: return aData[ eMuzzle_MaxFrames ];
 		case ZC_MUZZLE_FLAGS: return aData[ eMuzzle_Flags ];
 		case ZC_MUZZLE_START_TIME: return aData[ eMuzzle_StartTime ];
+		case ZC_MUZZLE_ANGLE: return aData[ eMuzzle_Angle ];
 		default:
 		{
 			WriteErrorLogs && PrepareErrorLog( "Muzzle Get Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
@@ -546,6 +584,7 @@ public native_muzzle_set_property( const iPlugin, const iParams )
 		case ZC_MUZZLE_MAX_FRAMES: aData[ eMuzzle_MaxFrames ] = get_float_byref( arg_value );
 		case ZC_MUZZLE_FLAGS: aData[ eMuzzle_Flags ] = get_param_byref( arg_value );
 		case ZC_MUZZLE_START_TIME: aData[ eMuzzle_StartTime ] = get_float_byref( arg_value );
+		case ZC_MUZZLE_ANGLE: aData[ eMuzzle_Angle ] = get_float_byref( arg_value );
 		default:
 		{
 			WriteErrorLogs && PrepareErrorLog( "Muzzle Set Property", "Property (%i) not found for MuzzleFlash (Id: %i)", iProperty, iMuzzleId );
